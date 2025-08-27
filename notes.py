@@ -2,9 +2,77 @@
 # einops
 
 
+# Compute math
 
-# Matrix mul dominate the compute 2 * m * n * p FLOPs
+# Matrix muls dominate the compute -> 2 * m * n * p FLOPs
 # FLOP/s depends on hardware and data types
 
-#  num_of_forward_flops = (2 * params_1) + (2 * params_2) + ...
+# num_of_forward_flops = (2 * params_1) + (2 * params_2) + ...
 # num_of_backward_flops = 4 * params
+
+
+
+# A simple example of 2 layer NN in JAX for MINST
+import time
+from jax import random, vmap, value_and_grad, jit
+import jax.numpy as jnp
+from jax.nn import swish, logsumexp, one_hot
+
+LAYER_SIZES = [28*28, 512, 10]
+PARAM_SCALE = 0.01
+
+num_epochs = 25
+
+def init_network_parameters(sizes, key=random.PRNGKey(0), scale=1e-2):
+  """Initialize all layers for a fully-connected neural network with given sizes"""
+
+  def random_layer_params(m, n, key, scale=1e-2):
+    """helper to randomly initialize W and b of a dense layer"""
+    W_key, b_key = random.split(key=key)
+    return scale * random.normal(W_key, (n, m)), scale * random.normal(b_key, (n,))
+  
+  keys = random.split(key, len(sizes))
+  return [random_layer_params(m, n, k, scale) for m, n, k in zip(sizes[:-1], sizes[1:], keys)]
+
+
+params = init_network_parameters(LAYER_SIZES, random.PRNGKey(0), scale=PARAM_SCALE)
+
+def call(params, image):
+  """Forawd pass"""
+  activations = image
+  for w, b in params[:-1]:
+    outputs = jnp.dot(w, activations) + b
+    activations = swish(outputs)
+  
+  # for the last layer we don not apply the activation function
+  final_w, final_b = params[-1]
+  logits = jnp.dot(final_w, activations) + final_b
+  return logits
+
+# a version that can now work with batches
+batched_call = vmap(call, in_axes=(None, 0))
+
+
+def loss(params, images, targets):
+  """Categorical cross entropy loss function"""
+  logits = batched_call(params, images)
+  log_preds = logits - logsumexp(logits)
+  return -jnp.mean(targets*log_preds)
+
+
+
+INIT_LR = 1.0
+DECAY_RATE = 0.95
+DECAY_STEPS = 5
+
+
+@jit
+def update(params, x, y, epoch_number):
+  loss_value, grads = value_and_grad(loss)(params, x, y)
+
+  lr = INIT_LR * DECAY_RATE ** (epoch_number / DECAY_STEPS)
+  return [(w - lr * dw , b - lr * db) for (w, b), (dw, db) in zip(params, grads)], loss_value
+
+#%%
+# Arrays in JAX
+
