@@ -74,5 +74,42 @@ def update(params, x, y, epoch_number):
   return [(w - lr * dw , b - lr * db) for (w, b), (dw, db) in zip(params, grads)], loss_value
 
 #%%
-# Arrays in JAX
+import jax
+import jax.numpy as jnp
 
+# placing data to a device
+
+arr = jnp.array([1 , 2, 3])
+arr.device
+
+arr_cpu = jax.device_put(arr, jax.devices('cpu')[0])
+
+arr + arr_cpu
+
+arr_gpu = jax.device_put(arr, jax.devices('gpu')[0])
+
+try:
+  arr_gpu + arr_cpu
+except ValueError as e:
+  print(e)
+
+
+# %%
+# Working with Asyn dispatch
+import jax
+import jax.numpy as jnp
+
+a = jnp.array(range(1_000_000)).reshape(1000, 1000)
+a.device
+# only measure time to dispatch the work
+%time x = jnp.dot(a, a) 
+
+%time x = jnp.dot(a,a).block_until_ready()
+# %%
+# updating a tensor element
+import jax.numpy as jnp 
+a_jnp = jnp.array([1,2,4])
+
+a_jnp = a_jnp.at[2].set(3)
+
+a_jnp[2]
