@@ -95,7 +95,7 @@ except ValueError as e:
 
 
 # %%
-# Working with Asyn dispatch
+# Working with Async dispatch
 import jax
 import jax.numpy as jnp
 
@@ -113,3 +113,70 @@ a_jnp = jnp.array([1,2,4])
 a_jnp = a_jnp.at[2].set(3)
 
 a_jnp[2]
+
+a_jnp  = jnp.array(range(10))
+a_jnp.at[42].get(mode='drop')
+
+# %%
+# working with autodiff
+
+def f(x):
+  return x**4 + 12*x + 1/x
+
+x = 11.0
+
+df = jax.grad(f)
+print(df(x))
+# %%
+
+# Linear regression example with autodiff
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 10*np.pi, num=1000)
+e = np.random.normal(scale=10.0, size=x.size)
+y = 65.0 + 1.8*x + 40*np.cos(x) + e
+
+# plt.scatter(x, y)
+
+xt = jnp.array(x)
+yt = jnp.array(y)
+
+learning_rate = 1e-2
+
+# W, b
+model_params = jnp.array([1. , 1.])
+
+def model(theta ,x):
+  w, b = theta
+  return w * x + b
+
+
+def loss_fn(model_params, x, y,):
+  prediction = model(model_params, x)
+  return jnp.mean((prediction - y)**2), prediction
+
+# creates a function for calc gradients 
+# jax calculates gradients with respect to the first parameter of a function
+# see jax.grad(f, argnums=(1,..)) otherwise
+grad_fn = jax.value_and_grad(loss_fn, has_aux=True)
+
+# calc the actual gradients
+(loss, preds), gradients = grad_fn(model_params, xt, yt)
+
+print(loss, gradients)
+
+# update step
+model_params -= learning_rate * gradients
+#%%
+# Jacobians
+import jax
+import jax.numpy as jnp
+
+def f(x):
+  return [
+    x[0]**2 + x[1]**2 - x[1]*x[2],
+    x[0]**2 - x[1]**2 + 3*x[0]*x[2]
+  ]
+
+print(jax.jacrev(f) (jnp.array([3., 4., 5.])))
