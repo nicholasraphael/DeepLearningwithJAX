@@ -169,7 +169,7 @@ print(loss, gradients)
 # update step
 model_params -= learning_rate * gradients
 #%%
-# Jacobians
+# Jacobian partial derivatives
 import jax
 import jax.numpy as jnp
 
@@ -180,3 +180,5 @@ def f(x):
   ]
 
 print(jax.jacrev(f) (jnp.array([3., 4., 5.])))
+
+# %%
