@@ -1,5 +1,5 @@
 [project]
-name = "data-analysis"
+name = "deeplearningwithjax"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,4 +8,6 @@ dependencies = [
     "einops>=0.8.1",
     "jax>=0.7.1",
     "safetensors>=0.6.2",
+    "typer[all]>=0.12.3",
+    "click>=8.1.7",
 ]
